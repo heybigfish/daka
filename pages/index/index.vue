@@ -346,54 +346,6 @@ export default {
 				uni.showToast({ title: "打卡成功！" })
 			}, 200)
 		},
-		// 选择地址
-		// openLocation() {
-		// 	var that = this;
-		// 	uni.chooseLocation({
-		// 		success: function (res) {
-		// 			that.address = res.address;
-		// 			that.signInfo.address = res.address;
-		// 			// 这里是有问题的 .返回的 res 中有经纬度，地址名  如果使用这个经纬度 就会存在问题，（当前位置和公司位置重合），所以不建议使用这个经纬度。
-		// 			var s = pointInsideCircle([that.latitude, that.longitude], [that.circles[0].latitude, that.circles[0].longitude], that.r);
-		// 			that.is = s;
-		// 		}
-		// 	});
-		// },
-		// getStorageSize:function(){
-		// 			let that = this;
-		// 			uni.getStorageInfo({
-		// 				success(res) {
-		// 					//console.log(res.keys);
-		// 					//console.log(res.limitSize);
-		// 					let size = res.currentSize;
-		// 					if (size < 1024) {
-		// 						that.storageSize = size + ' B';
-		// 					} else if (size/1024>=1 && size/1024/1024<1) {
-		// 						that.storageSize = Math.floor(size/1024*100)/100 + ' KB';
-		// 					} else if (size/1024/1024>=1) {
-		// 						that.storageSize = Math.floor(size/1024/1024*100)/100 + ' M';
-		// 					}
-		// 				}
-		// 			})
-		// 		},
-		// 		clearStorage:function (){
-		// 			let that = this;
-		// 			uni.showModal({
-		// 				title:'提示',
-		// 				content:'确定清除缓存吗?',
-		// 				confirmText:'立即清除',
-		// 				success(res) {
-		// 					if(res.confirm){
-		// 						uni.clearStorageSync();
-		// 						//重新获取并显示清除后的缓存大小
-		// 						that.getStorageSize();
-		// 						uni.showToast({
-		// 							title:'清除成功'
-		// 						})
-		// 					}
-		// 				}
-		// 			})
-		// 		}
 	},
 }
 </script>
