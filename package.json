@@ -1,0 +1,6 @@
+{
+  "name": "demo",
+  "dependencies": {
+    "@dcloudio/uni-ui":"1.3.0"
+  }
+}
