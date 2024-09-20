@@ -1,6 +1,6 @@
 {
     "name": "demo",
-    "appid": "wxb954da54f41089c8",
+    "appid": "wx2939e8c19899990e",
     "description": "",
     "versionName": "1.0.0",
     "versionCode": "100",
@@ -50,13 +50,17 @@
     "quickapp": {},
     /* 小程序特有相关 */
     "mp-weixin": {
-        "appid": "wxb954da54f41089c8",
+        "appid": "wx2939e8c19899990e",
         "setting": {
             "urlCheck": false
         },
         "usingComponents": true,
         "requiredPrivateInfos": [
-            "getLocation"
+            "getLocation",
+            "onLocationChange",
+            "startLocationUpdate",
+            "startLocationUpdateBackground",
+            "chooseAddress"
         ],
         "permission": {
             "scope.userLocation": {

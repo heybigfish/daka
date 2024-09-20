@@ -161,7 +161,7 @@ function haversineGreatCircleDistance(
     return earthRadius * c; // 返回距离，单位米  
 }
 // 判断点是否在圆内
-export  function pointInsideCircle(point, circle, radius) {
+export function pointInsideCircle(point, circle, radius) {
     // point 当前
     // circle 圆心
     // radius 半径
@@ -174,7 +174,7 @@ export  function pointInsideCircle(point, circle, radius) {
     let lat = point[0];
     let lon = point[1];
     const distance = haversineGreatCircleDistance(latCenter, lonCenter, lat, lon);
-    console.log("distance", distance);
+    console.log("distance", distance, radius);
     return distance <= radius;
 }
 
@@ -219,6 +219,47 @@ function getCurrentMonthLast() {
     // }
     return year + '年' + month + '月' + day + '日';
 }
+
+export function debounce(func, wait) {
+    let timeout; // 声明一个变量来保存定时器  
+
+    // 返回一个函数，这个函数会在一个时间间隔后执行  
+    return function () {
+        // 保留函数调用的上下文（this）和参数（...args）  
+        const context = this;
+        const args = arguments;
+
+        // 如果之前的定时器还存在，则清除它  
+        if (timeout) {
+            clearTimeout(timeout);
+        }
+
+        // 设置一个新的定时器，延迟执行函数  
+        timeout = setTimeout(() => {
+            func.apply(context, args); // 使用apply来调用原函数，并传入正确的上下文和参数  
+        }, wait);
+    };
+}
+export function throttle(func, limit) {  
+    let lastFunc;  
+    let lastRan;  
+    return function() {  
+        const context = this;  
+        const args = arguments;  
+        if (!lastRan) {  
+            func.apply(context, args);  
+            lastRan = Date.now();  
+        } else {  
+            clearTimeout(lastFunc);  
+            lastFunc = setTimeout(function() {  
+                if ((Date.now() - lastRan) >= limit) {  
+                    func.apply(context, args);  
+                    lastRan = Date.now();  
+                }  
+            }, limit - (Date.now() - lastRan));  
+        }  
+    };  
+}  
 export default {
     formatTime,
     formatLocation,
@@ -230,5 +271,7 @@ export default {
     pointInsideCircle,
     isSameDay,
     getCurrentMonthFirst,
-    getCurrentMonthLast
+    getCurrentMonthLast,
+    debounce,
+    throttle
 }

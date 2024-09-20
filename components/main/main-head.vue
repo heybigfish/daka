@@ -30,7 +30,7 @@
 				name:"化纤大脑",
 				moduleTitle: '上班打卡',
 				Timer:[{time:"09:00",},{time:"18:00"}],	//上下班时间
-				achievement:{message:"海内存知己",description:"天涯若比邻"},			//业绩	
+				achievement:{message:"xxxxxxxx",description:"xxxxxxxx"},			//业绩	
 				organize:'考勤系统',							//考情组		
 			};
 		}

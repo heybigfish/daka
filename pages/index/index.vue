@@ -2,10 +2,12 @@
 	<view class="content">
 		<view class="page-body">
 			<mainHead />
+			<!-- 当前位置：{{ address }} -->
 			<!-- // 日期时间 -->
 			<view class="sign-title-r">
 				<view class="date">
-					<view style="text-align: center;">{{ date }}<text style="margin: 0 1em;">{{ week }}</text>{{ Timer[0].time }} -
+					<view style="text-align: center;">{{ date }}<text style="margin: 0 1em;">{{ week }}</text>{{ Timer[0].time }}
+						-
 						{{ Timer[1].time }}</view>
 				</view>
 			</view>
@@ -20,8 +22,8 @@
 							<view class="desc-pad mgsBox" v-if="isAm">
 								<view class="time uni-timeline-item-content-t iswqbox">
 									打卡时间 {{ (amSign.time).substring(10, 16) }}
-									<view class="iswq" v-if="amSign.mode == '外勤打卡'">
-										<uni-tag text="外勤" inverted type="success" size='small'></uni-tag>
+									<view class="iswq">
+										<uni-tag :text="amSign.mode" inverted type="success" size='small'></uni-tag>
 									</view>
 								</view>
 								<view>
@@ -70,38 +72,25 @@
 								<view class="desc-pad" v-if="isPm">
 									<view class="time uni-timeline-item-content-t iswqbox">
 										打卡时间:{{ (pmSign.time).substring(10, 16) }}
-										<view class="iswq" v-if="amSign.mode == '外勤打卡'">
-											<uni-tag text="外勤" inverted type="success" size='small'></uni-tag>
-										</view>
-										<view class="iswq" v-if="amSign.mode == '迟到打卡'">
-											<uni-tag text="迟到" inverted type="warning" size='small'></uni-tag>
+										<view class="iswq" v-if="amSign.mode">
+											<uni-tag :text="amSign.mode" inverted type="success" size='small'></uni-tag>
 										</view>
 									</view>
 									<view>{{ pmSign.address }}</view>
 								</view>
 								<view v-else class="content-show">
+									<view :class="['module', modulePmColor]" @click="clickSign">
+										<view class="text">{{ modulePmTitle }}</view>
+										<view class="time">{{ time }}</view>
+									</view>
 									<view v-if="is === true">
-										<view class="module CBlue" @click="clickSign">
-											<view class="text">下班打卡</view>
-											<view class="time">{{ time }}</view>
-										</view>
 										<view class="colorGreen" style="text-align: center;" v-if="is">
-											已在考勤范围内 <text class="relocation" @click="relocation">重新定位</text>
+											已在考勤范围内
 										</view>
 									</view>
 									<view v-else-if="is === false">
-										<view class="module CGreen" @click="clickSign">
-											<view class="text">外勤打卡</view>
-											<view class="time">{{ time }}</view>
-										</view>
 										<view class="colorRed" style="text-align: center;" v-if="!is">
 											不再考勤范围内 <text class="relocation" @click="relocation">重新定位</text>
-										</view>
-									</view>
-									<view v-else-if="is === null">
-										<view class="module CAsh">
-											<view class="text">定位失败</view>
-											<view class="time">{{ time }}</view>
 										</view>
 									</view>
 								</view>
@@ -118,17 +107,19 @@
 import uniPopup from '@/components/uni-popup/uni-popup.vue'
 import uniIcon from "@/components/uni-icon/uni-icon.vue"
 import mainHead from "@/components/main/main-head.vue"
-import { formateDate, pointInsideCircle, isSameDay } from "../../common/util.js"
-import {  setSignInfo, addSignInfo, getSignInfo, getInfo, key } from "./index.js"
+import { formateDate, pointInsideCircle, isSameDay, throttle } from "../../common/util.js"
+import { setSignInfo, addSignInfo, getSignInfo, getInfo, key } from "./index.js"
 export default {
 	components: { uniIcon, uniPopup, mainHead },
 	data() {
 		return {
 			name: "Navy_c",
 			moduleColor: 'CBlue',
+			modulePmColor: 'CBlue',
 			moduleTitle: '上班打卡',
-			r: 80,									//半径
-			Timer: [{ time: "09:00", }, { time: "18:00" }],	//上下班时间
+			modulePmTitle: '下班班打卡',
+			activeClickBtn: true,  // 是否启动快捷打卡
+			Timer: [{ time: "15:00", }, { time: "18:00" }],	//上下班时间
 			isAm: false,								//上班是否打卡
 			isPm: false,								//下班是否打卡
 			amSign: { time: "", address: "", remarks: "", img: "" },			//上午打卡信息
@@ -144,19 +135,58 @@ export default {
 			address: "我的位置",
 			allSign: [],								//所有打卡信息						
 			signInfo: { mode: "", latitude: "", longitude: "", address: "", time: "", remarks: "" },	//打卡信息 （模式，经纬度，地址，时间）
-			// 120.274,30.200623
 			covers: [
 				// 公司点信息
-				{ id: 0, callout: { content: "化纤大脑", color: "red", display: "ALWAYS", }, latitude: 30.18534, longitude: 120.36457, iconPath: '../../../static/img/location.png' },
+				{ id: 0, callout: { content: "化纤大脑", color: "red", display: "ALWAYS", }, latitude: 30.194146592881946, longitude: 120.26730929904514, iconPath: '../../../static/img/location.png' },
 			],
 			circles: [
 				// 公司圆信息(latitude:30.18534,longitude:120.26457,);
-				{ latitude: 30.18535, longitude: 120.36457, radius: 80, strokeWidth: 1, fillColor: "#7fff0099" },
+				{ latitude: 30.194146592881946, longitude: 120.26730929904514, radius: 50, strokeWidth: 1, fillColor: "#7fff0099" },
 			]
+			// 30.194146592881946 120.26730929904514
+		}
+	},
+	computed: {
+		moduleTitle() {
+			let setTime = this.Timer[0].time.replace(/:/g, '')
+			let getTime = this.time.replace(/:/g, '').substring(0, 4)
+			if (!this.is) {
+				this.moduleColor = 'CGreen'
+				return "外勤打卡"
+			} else {
+				if (getTime > setTime) {
+					this.moduleColor = 'CYellow'
+					return "迟到打卡"
+				} else {
+					this.moduleColor = 'CBlue'
+					return "正常打卡"
+				}
+			}
+		},
+		modulePmTitle() {
+			let setTime = this.Timer[1].time.replace(/:/g, '')
+			let getTime = this.time.replace(/:/g, '').substring(0, 4)
+			if (this.is) {
+				if (getTime < setTime) {
+					this.modulePmColor = 'CYellow'
+					return "早退打卡"
+				} else {
+					this.modulePmColor = 'CBlue'
+					return "正常打卡"
+				}
+			} else if (this.is === null) {
+				this.modulePmColor = 'CAsh'
+				return "定位失败"
+			} else {
+				this.modulePmColor = 'CGreen'
+				return "外勤打卡"
+			}
+
 		}
 	},
 	// 初始化
 	onLoad() {
+		this.clickSign = throttle(this.clickSign,1000)
 		var sign = getSignInfo();
 		if (sign != undefined) {
 			var signA = sign.main.reverse();
@@ -189,12 +219,95 @@ export default {
 				}
 			}
 		}
-		this.getLocation();
 		this.getTime();
 		this.getWeekDate();
-
+		this.startLocationUpdate()
 	},
 	methods: {
+		// 监听位置信息变化
+		// 开始监听位置变化  
+		startLocationUpdate() {
+			console.log("js开始监听位置变化");
+			uni.showLoading({ title: "获取位置信息...", mask: true });
+			var that = this;
+			let setAmTime = this.Timer[0].time.replace(/:/g, '')
+			let setPmTime = this.Timer[1].time.replace(/:/g, '')
+			let getTime = this.time.replace(/:/g, '').substring(0, 4)
+			const func = throttle(that.autoSign, 2000)
+			uni.startLocationUpdate({
+				success: function () {
+					console.log('开始监听位置变化');
+					// 监听位置变化  
+					uni.onLocationChange(function (res) {
+						console.log('位置变化', res.latitude, res.longitude);
+						that.latitude = res.latitude;
+						that.longitude = res.longitude;
+						that.covers[1] = { id: 1, latitude: res.latitude, longitude: res.longitude, iconPath: '../../static/location.png' }
+						// 是否在正常打卡范围内
+						var s = pointInsideCircle([that.latitude, that.longitude], [that.circles[0].latitude, that.circles[0].longitude], that.circles[0].radius);
+						console.log("s~", s, setPmTime , getTime);
+						that.is = s;
+						that.signInfo.latitude = res.latitude;
+						that.signInfo.longitude = res.longitude;
+						that.signInfo.mode = s ? "正常打卡" : "外勤打卡";
+						that.getAdd()
+						var isTrue = that.is;
+						if (that.activeClickBtn) {
+							// 不在考勤范围内，不进行打卡操作
+							if (isTrue === null) {
+								return;
+							}
+							// 时间小于等于上班时间，并且上班打卡未打卡，进行打卡操作
+							if (setAmTime >= getTime && isTrue && that.isAm === false) {
+								func()
+							} else if (setPmTime <= getTime && isTrue && that.isPm === false && that.isAm === true) {
+								// 时间大于等于下班时间，并且下班打卡未打卡，进行打卡操作
+								func()
+							}
+						}
+					});
+				},
+				fail: function (err) {
+					console.error('开始监听位置变化失败：', err);
+				},
+				complete: function () {
+					console.log('开始监听位置变化完成');
+					uni.hideLoading();
+				}
+			});
+		},
+		// 自动打卡
+		autoSign() {
+			console.log("开始自动打卡");
+
+			var that = this;
+			uni.showLoading({ title: "打卡记录中...", mask: true });
+			this.signInfo.time = formateDate(new Date(), 'Y-M-D h:min:s');
+			var a = getSignInfo();
+			if (a != undefined) {
+				addSignInfo(getInfo(this.signInfo), a)
+			} else {
+				setSignInfo(getInfo(this.signInfo))
+			}
+			setTimeout(function () {
+				uni.hideLoading();
+				var sign = getSignInfo().main;
+				that.allSign = sign.reverse();
+				console.log("that.allSign", that.allSign);
+
+				that.isSign = true;
+
+				console.log(that.allSign, 999);
+				if (that.isAm === false) {
+					that.isAm = true;
+					that.amSign = that.allSign[0];
+				} else {
+					that.isPm = true;
+					that.pmSign = that.allSign[1];
+				}
+				uni.showToast({ title: "打卡成功！" })
+			}, 200)
+		},
 		getWeekDate() {
 			var now = new Date();
 			var day = now.getDay();
@@ -202,7 +315,7 @@ export default {
 			this.week = weeks[day];
 			console.log(this.week);
 		},
-		// 腾讯位置服务
+		// 获取实时地址
 		getAdd() {
 			if (this.isAm && this.isPm) {
 				return;
@@ -214,12 +327,12 @@ export default {
 				return;
 			}
 			var that = this;
-			// var url = `https://apis.map.qq.com/ws/geocoder/v1/?location=${that.latitude},${that.longitude}&key=${key}`;
-			var url = 'https://apis.map.qq.com/ws/geocoder/v1/?location=30.200623,120.274&key=SOEBZ-J2BHS-7YSOI-64K33-6RO65-G2FEJ'
+			var url = `https://apis.map.qq.com/ws/geocoder/v1/?location=${that.latitude},${that.longitude}&key=${key}`;
 			uni.request({
 				url,
 				success(res) {
-					console.log("位置信息", res.data, that.is);
+					console.log("实时地址信息", res.data);
+
 					var data = res.data;
 					if (data.status != 0) {
 						uni.showToast({ title: data.message, icon: "none" })
@@ -251,7 +364,7 @@ export default {
 					that.covers[0].callout.content = data.name;
 					that.covers[0].latitude = that.circles[0].latitude = data.latitude;
 					that.covers[0].longitude = that.circles[0].longitude = data.longitude;
-					that.r = that.circles.radius = data.r;
+					that.circles.radius = data.r;
 				}
 			})
 		},
@@ -270,12 +383,6 @@ export default {
 		// 获取当前位置
 		getLocation() {
 			var that = this;
-			let setTime = this.Timer[0].time.replace(/:/g, '')
-			let getTime = this.time.replace(/:/g, '').substring(0, 4)
-			if (setTime < getTime) {
-				this.moduleColor = 'CYellow'
-				this.moduleTitle = '迟到打卡'
-			}
 			if (this.clickNum !== 0) {
 				uni.showLoading({ title: "获取中...", mask: true })
 			}
@@ -288,24 +395,25 @@ export default {
 				type: 'gcj02', //返回可以用于uni.openLocation的经纬度
 				success(res) {
 					console.log("当前位置信息", res);
-					
+
 					uni.hideLoading();
 					that.latitude = res.latitude;
 					that.longitude = res.longitude;
-					console.log(res.latitude,"---",res.longitude)
+					console.log(res.latitude, "---", res.longitude)
 					that.covers[1] = { id: 1, latitude: res.latitude, longitude: res.longitude, iconPath: '../../static/location.png' }
-					var s = pointInsideCircle([that.latitude, that.longitude], [that.circles[0].latitude, that.circles[0].longitude], that.r);
+					var s = pointInsideCircle([that.latitude, that.longitude], [that.circles[0].latitude, that.circles[0].longitude], that.circles[0].radius);
 
 
 					that.is = s;
 					that.signInfo.latitude = res.latitude;
 					that.signInfo.longitude = res.longitude;
 					that.signInfo.mode = s ? "正常打卡" : "外勤打卡";
-
+					that.clickNum = 0;
 					that.getAdd()
 				},
 				fail(err) {
 					uni.hideLoading();
+					that.clickNum = 0;
 					that.address = "请检查位置信息"
 					uni.showToast({ title: "请检查位置信息状态！", icon: "none", mask: true, duration: 3000 })
 					console.log("err`~~", err)
@@ -320,7 +428,6 @@ export default {
 				uni.showToast({ title: "请检查位置信息状态！", icon: "none", mask: true, duration: 3000 })
 				return;
 			}
-			this.getLocation() //再次获取数据
 			uni.showLoading({ title: "打卡记录中...", mask: true });
 			this.signInfo.time = formateDate(new Date(), 'Y-M-D h:min:s');
 			var a = getSignInfo();
@@ -477,9 +584,11 @@ export default {
 }
 
 .iswq {
-	width: 100upx;
+	width: 180upx;
 	margin-left: 10upx;
 }
-.relocation{color: #0000FF;}
 
+.relocation {
+	color: #0000FF;
+}
 </style>
