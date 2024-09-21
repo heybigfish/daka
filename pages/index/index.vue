@@ -31,29 +31,21 @@
 								</view>
 							</view>
 							<view v-else class="content-show">
+								<view :class="['module', moduleColor]" @click="clickSign('am')">
+									<view class="text">{{ moduleTitle }}</view>
+									<view class="time">{{ time }}</view>
+								</view>
 								<view v-if="is === true">
-									<view :class="['module', moduleColor]" @click="clickSign">
-										<view class="text">{{ moduleTitle }}</view>
-										<view class="time">{{ time }}</view>
-									</view>
-									<view class="colorGreen" style="text-align: center;" v-if="is">
+									<view class="colorGreen" style="text-align: center;">
 										已在考勤范围内
 									</view>
 								</view>
 								<view v-else-if="is === false">
-									<view class="module CGreen" @click="clickSign">
-										<view class="text">外勤打卡</view>
-										<view class="time">{{ time }}</view>
-									</view>
-									<view class="colorRed" style="text-align: center;" v-if="!is">
+									<view class="colorRed" style="text-align: center;">
 										不在考勤范围内 <text class="relocation" @click="relocation">重新定位</text>
 									</view>
 								</view>
 								<view v-else-if="is === null">
-									<view class="module CAsh">
-										<view class="text">定位失败</view>
-										<view class="time">{{ time }}</view>
-									</view>
 									<view class="colorRed" style="text-align: center;">
 										<text>请检查手机定位服务状态</text>
 										<text class="relocation" @click="relocation">刷新</text>
@@ -72,14 +64,14 @@
 								<view class="desc-pad" v-if="isPm">
 									<view class="time uni-timeline-item-content-t iswqbox">
 										打卡时间:{{ (pmSign.time).substring(10, 16) }}
-										<view class="iswq" v-if="amSign.mode">
-											<uni-tag :text="amSign.mode" inverted type="success" size='small'></uni-tag>
+										<view class="iswq" v-if="pmSign.mode">
+											<uni-tag :text="pmSign.mode" inverted type="success" size='small'></uni-tag>
 										</view>
 									</view>
 									<view>{{ pmSign.address }}</view>
 								</view>
 								<view v-else class="content-show">
-									<view :class="['module', modulePmColor]" @click="clickSign">
+									<view :class="['module', modulePmColor]" @click="clickSign('pm')">
 										<view class="text">{{ modulePmTitle }}</view>
 										<view class="time">{{ time }}</view>
 									</view>
@@ -116,8 +108,6 @@ export default {
 			name: "Navy_c",
 			moduleColor: 'CBlue',
 			modulePmColor: 'CBlue',
-			moduleTitle: '上班打卡',
-			modulePmTitle: '下班班打卡',
 			activeClickBtn: true,  // 是否启动快捷打卡
 			Timer: [{ time: "15:00", }, { time: "18:00" }],	//上下班时间
 			isAm: false,								//上班是否打卡
@@ -186,7 +176,7 @@ export default {
 	},
 	// 初始化
 	onLoad() {
-		this.clickSign = throttle(this.clickSign,1000)
+		this.clickSign = throttle(this.clickSign, 1000)
 		var sign = getSignInfo();
 		if (sign != undefined) {
 			var signA = sign.main.reverse();
@@ -245,7 +235,7 @@ export default {
 						that.covers[1] = { id: 1, latitude: res.latitude, longitude: res.longitude, iconPath: '../../static/location.png' }
 						// 是否在正常打卡范围内
 						var s = pointInsideCircle([that.latitude, that.longitude], [that.circles[0].latitude, that.circles[0].longitude], that.circles[0].radius);
-						console.log("s~", s, setPmTime , getTime);
+						console.log("s~", s, setPmTime, getTime);
 						that.is = s;
 						that.signInfo.latitude = res.latitude;
 						that.signInfo.longitude = res.longitude;
@@ -254,15 +244,15 @@ export default {
 						var isTrue = that.is;
 						if (that.activeClickBtn) {
 							// 不在考勤范围内，不进行打卡操作
-							if (isTrue === null) {
+							if (!isTrue) {
 								return;
 							}
 							// 时间小于等于上班时间，并且上班打卡未打卡，进行打卡操作
-							if (setAmTime >= getTime && isTrue && that.isAm === false) {
-								func()
-							} else if (setPmTime <= getTime && isTrue && that.isPm === false && that.isAm === true) {
+							if (setAmTime >= getTime && that.isAm === false) {
+								func('am')
+							} else if (setPmTime <= getTime && that.isPm === false && that.isAm === true) {
 								// 时间大于等于下班时间，并且下班打卡未打卡，进行打卡操作
-								func()
+								func('pm')
 							}
 						}
 					});
@@ -277,36 +267,10 @@ export default {
 			});
 		},
 		// 自动打卡
-		autoSign() {
-			console.log("开始自动打卡");
+		autoSign(type) {
+			console.log("自动打卡", type);
 
-			var that = this;
-			uni.showLoading({ title: "打卡记录中...", mask: true });
-			this.signInfo.time = formateDate(new Date(), 'Y-M-D h:min:s');
-			var a = getSignInfo();
-			if (a != undefined) {
-				addSignInfo(getInfo(this.signInfo), a)
-			} else {
-				setSignInfo(getInfo(this.signInfo))
-			}
-			setTimeout(function () {
-				uni.hideLoading();
-				var sign = getSignInfo().main;
-				that.allSign = sign.reverse();
-				console.log("that.allSign", that.allSign);
-
-				that.isSign = true;
-
-				console.log(that.allSign, 999);
-				if (that.isAm === false) {
-					that.isAm = true;
-					that.amSign = that.allSign[0];
-				} else {
-					that.isPm = true;
-					that.pmSign = that.allSign[1];
-				}
-				uni.showToast({ title: "打卡成功！" })
-			}, 200)
+			this.clickSign(type)
 		},
 		getWeekDate() {
 			var now = new Date();
@@ -421,7 +385,7 @@ export default {
 			});
 		},
 		// 点击打卡
-		clickSign() {
+		clickSign(type) {
 			var that = this;
 			var isTrue = this.is;
 			if (isTrue === null) {
@@ -443,13 +407,19 @@ export default {
 				that.isSign = true;
 
 				console.log(that.allSign, 999);
-				if (that.isAm === false) {
+				if (that.isAm === false && type === 'am') {
+					that.allSign[0].mode = that.moduleTitle
 					that.isAm = true;
 					that.amSign = that.allSign[0];
-				} else {
+				}
+
+				if (that.isPm === false && type === 'pm') {
+					that.allSign[1].mode = that.modulePmTitle
 					that.isPm = true;
 					that.pmSign = that.allSign[1];
 				}
+				console.log("that.signInfo", that.signInfo, that.pmSign, that.modulePmTitle);
+
 				uni.showToast({ title: "打卡成功！" })
 			}, 200)
 		},
